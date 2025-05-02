@@ -1,0 +1,483 @@
+   supercells = {
+       'MoS2': ['1x10', '1x20', '1x30'],
+       'MoSe2': ['1x10', '1x20'],
+       'WS2': ['1x10', '1x20'],
+       'WSe2': ['1x10', '1x20']
+   }
+
+   for material in materials:
+       print(f"\nProcessing {material}...")
+
+       for supercell in supercells[material]:
+           print(f"Processing {supercell}...")
+
+           for strain in range(21):
+               source = f"{base_path}/{material}/Monolayer/rectangular/{supercell}/{strain}/{material}.POSCAR"
+               target = f"{base_path}/{material}/Monolayer/rectangular/{supercell}/{strain}/Structure/{material}.POSCAR"
+
+               if os.path.exists(source):
+                   try:
+                       os.system(f"mv {source} {target}")
+                       print(f"Moved {material} {supercell} strain {strain}")
+                   except Exception as e:
+                       print(f"Error moving {source}: {str(e)}")
+               else:
+                   print(f"File not found: {source}")
+
+   print("\nMove operation completed!")
+
+# Run the function
+if __name__ == "__main__":
+   move_poscar_files()
+[meshal@ln002 python-codes]$ home
+[meshal@ln002 ~]$ ls
+OTHER  SIESTA  bin  isotropy  local  python-codes  siestapot  structure.data
+[meshal@ln002 ~]$ cd SIESTA/
+[meshal@ln002 SIESTA]$ ls
+Utilities  job.out  materials  referenceFiles  run.txt
+[meshal@ln002 SIESTA]$ op run.txt
+
+[4]+  Stopped                 emacs -nw run.txt
+[meshal@ln002 SIESTA]$ clear
+[meshal@ln002 SIESTA]$ cat run.txt
+#!/bin/bash
+
+# Material
+
+############## Semiconductors ##############
+
+           ##### TMDs #####
+             # VIB-VIA  #
+#material="MoS2"   # 1.9 eV (Direct)
+#material="MoSe2"  # 1.6 eV (Direct)
+#material="MoTe2"  # 1.1 eV (Direct)
+#material="WS2"    # 2.0 eV (Direct)
+material="WSe2"   # 1.7 eV (Direct)
+
+             # IVB-VIA #
+# material="ZrS2"   # 1.7 eV (Indirect)
+# material="HfS2"   # 1.4 eV (Indirect)
+
+             # VB-VIA #
+# material="TaS2"   # Metallic (No bandgap in the 1T' phase)
+# material="NbSe2"  # Metallic (No bandgap)
+
+          ##### Post-TMDs #####
+             # IIIA-VIA #
+# material="InSe"   # 1.25 eV (Direct)
+# material="GaS"    # 2.5 eV (Indirect)
+# material="GaSe"   # 2.1 eV (Indirect)
+
+             # IVA-VIA #
+# material="SnS2"   # 2.2 eV (Indirect)
+
+         ##### Group III-VI Monochalcogenides #####
+             # IIIA-VIA #
+# material="In2Se3" # 1.9 eV (Indirect)
+# material="Ga2S3"  # 2.7 eV (Indirect)
+
+         ##### Group IV Monochalcogenides #####
+             # IVA-VIA #
+# material="GeS"    # 1.6 eV (Indirect)
+# material="GeSe"   # 1.1 eV (Indirect)
+
+         ##### Group V Monochalcogenides #####
+             # VA-VIA #
+# material="Sb2Se3" # 1.1 eV (Indirect)
+# material="Bi2Se3" # 0.3 eV (Topological Insulator)
+
+############## Metals ##############
+
+           ##### TMDs #####
+             # VB-VIA #
+# material="VSe2"   # Metallic (No bandgap)
+# material="NbS2"   # Metallic (No bandgap)
+# material="TaSe2"  # Metallic (No bandgap)
+
+             # VIIB-VIA #
+# material="ReS2"   # Metallic (No bandgap)
+# material="ReSe2"  # Metallic (No bandgap)
+
+          ##### Post-TMDs #####
+             # IVA-VIA #
+# material="SnSe"   # 0.9 eV (Narrow-gap semiconductor/metal depending on phase)
+
+             # IVB-VIA #
+# material="PbS"    # 0.4 eV (Narrow-gap semiconductor)
+
+############## Semimetals ##############
+
+             # IVA #
+# material="Graphene"  # 0 eV (Zero bandgap, semimetal)
+
+         ##### TMDs #####
+             # VIB-VIA #
+# material="WTe2"      # 0 eV (Semimetal)
+
+             # IVB-VIA #
+# material="TiS2"      # 0 eV (Semimetal)
+# material="ZrTe2"     # 0 eV (Semimetal)
+
+# Insulators
+
+             # IIIA-VIA #
+# material="hBN"       # 6.0 eV (Wide bandgap insulator)
+
+             # VIB-VIA #
+# material="MoO3"      # 3.0 eV (Wide bandgap insulator)
+
+             # VA-VIIA #
+# material="BiI3"      # 1.9 eV (Indirect bandgap insulator)
+
+             # IVA-VIA #
+# material="SnS"       # 1.3 eV (Indirect bandgap, narrow-gap insulator)
+
+############## Superconductors ##############
+
+             # VIIIB-VIA #
+# material="FeSe"      # High-temperature superconductor
+
+           ##### TMDs #####
+             # VB-VIA #
+# material="NbSe2"     # Superconducting properties at low temperatures
+# material="TaS2"      # Superconducting properties in certain phases
+
+############## Topological Insulators ##############
+
+             # VA-VIA #
+# material="Bi2Se3"    # 0.3 eV (Topological insulator)
+# material="Bi2Te3"    # 0.15 eV (Topological insulator)
+# material="Sb2Te3"    # 0.3 eV (Topological insulator)
+
+############## Magnetic Materials ##############
+
+             # IIB-VIIA #
+# material="CrI3"      # 1.0 eV (Magnetic semiconductor)
+
+             # IIIB-VA #
+# material="FePS3"     # Magnetic properties (no bandgap)
+# material="MnPS3"     # Magnetic properties (no bandgap)
+
+type="Monolayer"
+#type="Bulk"
+
+# NON-STRAINED
+#structure="primitive"
+#supercell="1x1"
+#strains=("0")
+
+
+#structure="rectangular"
+#supercell="1x1"
+#strains=("0")
+
+# STRAINED
+    # ARMCHAIR
+structure="rectangular"
+supercell="1x10"
+#strains=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "20")
+#strains=("3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "20")
+#strains=("3" "4" "6" "7" "8" "9" "12" "13" "15" "20")
+strains=("4")
+
+    # ZIGZAG
+#structure="rectangular"
+#supercell="30x1"
+#strains=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "20")
+
+# Functional
+functional="GGA"
+SOC="F"
+#SOC="T"
+
+#functional="LDA"
+#SOC="F"
+
+# RUN TYPES
+RelaxRun="T"
+StaticRun="T"
+BandsRun="T"
+LDOSRun="T"
+
+# Partition (savio2_bigmem "1", savio3 "2", savio4_htc "3", catamount "4")
+partition="2"
+
+RELAXED="F"
+
+# Define the function
+copy_material_files() {
+    if [ "$1" = "MoS2" ]; then
+        if [ "$3" = "T" ]; then
+            cp ~/siestapot/"$2"-SOC/Mo.psf .
+            cp ~/siestapot/"$2"-SOC/S.psf .
+        else
+            cp ~/siestapot/"$2"/Mo.psf .
+            cp ~/siestapot/"$2"/S.psf .
+        fi
+    elif [ "$1" = "MoSe2" ]; then
+        if [ "$3" = "T" ]; then
+            cp ~/siestapot/"$2"-SOC/Mo.psf .
+            cp ~/siestapot/"$2"-SOC/Se.psf .
+        else
+            cp ~/siestapot/"$2"/Mo.psf .
+            cp ~/siestapot/"$2"/Se.psf .
+        fi
+    elif [ "$1" = "WS2" ]; then
+        if [ "$3" = "T" ]; then
+            cp ~/siestapot/"$2"-SOC/W.psf .
+            cp ~/siestapot/"$2"-SOC/S.psf .
+        else
+            cp ~/siestapot/"$2"/W.psf .
+            cp ~/siestapot/"$2"/S.psf .
+        fi
+    elif [ "$1" = "WSe2" ]; then
+        if [ "$3" = "T" ]; then
+            cp ~/siestapot/"$2"-SOC/W.psf .
+            cp ~/siestapot/"$2"-SOC/Se.psf .
+        else
+            cp ~/siestapot/"$2"/W.psf .
+            cp ~/siestapot/"$2"/Se.psf .
+        fi
+    elif [ "$1" = "C" ]; then
+        if [ "$3" = "T" ]; then
+            cp ~/siestapot/"$2"-SOC/C.psf .
+        else
+            cp ~/siestapot/"$2"/C.psf .
+        fi
+    fi
+}
+
+
+set_partition_variables() {
+    case "$1" in
+        1)
+            accountVAR="co_msedcc" # (124 nodes,   24 cores/node,  64 GB memory/node)
+            paritionVAR="savio2"
+            QoSVAR="savio_lowprio"
+            nodesVAR="4"
+            cpusVAR="24"
+            ;;
+        2)
+            accountVAR="co_msedcc" # (36 nodes,   24 cores/node,  128 GB memory/node)
+            paritionVAR="savio2_bigmem"
+            QoSVAR="savio_lowprio"
+            nodesVAR="1"
+            cpusVAR="24"
+            ;;
+        3)
+            accountVAR="co_msedcc" # (20 nodes,   12 cores/node,  128 GB memory/node)
+            paritionVAR="savio2_htc"
+            QoSVAR="savio_lowprio"
+            nodesVAR="2"
+            cpusVAR="12"
+            ;;
+        4)
+            accountVAR="co_msedcc" # (17 nodes,   8 cores/node,         64 GB memory/node)
+            paritionVAR="savio2_gpu"
+            QoSVAR="savio_lowprio"
+            nodesVAR="1"
+            cpusVAR="8"
+            ;;
+        5)
+            accountVAR="co_msedcc" # (28 nodes,         64 cores/node,  188 GB memory/node)
+            paritionVAR="savio2_knl"
+            QoSVAR="savio_lowprio"
+            nodesVAR="1"
+            cpusVAR="64"
+            ;;
+        6)
+            accountVAR="co_msedcc" # (112 nodes,  32 cores/node,  96 GB memory/node)
+            paritionVAR="savio3"
+            QoSVAR="savio_lowprio"
+            nodesVAR="4"
+            cpusVAR="32"
+            ;;
+        7)
+            accountVAR="co_chrzangroup" # (84 nodes,  56 cores/node,  96 GB memory/node)
+            paritionVAR="savio4_htc"
+            #QoSVAR="chrzangroup_htc4_normal"
+            QoSVAR="savio_lowprio"
+            nodesVAR="4"
+            cpusVAR="56"
+            ;;
+        8)
+            accountVAR="co_msedcc" # (36 nodes "BUT 8 NODES / GROUP",   24 cores/node,  128 GB memory/node)
+            paritionVAR="savio2_bigmem"
+            QoSVAR="msedcc_bigmem2_normal"
+            #QoSVAR="savio_lowprio"
+            nodesVAR="2"
+            cpusVAR="24"
+            ;;
+        9)
+            accountVAR="co_msedcc" # (20 nodes,   32 cores/node,  384 GB memory/node)
+            paritionVAR="savio3_bigmem"
+            QoSVAR="savio_lowprio"
+            nodesVAR="1"
+            cpusVAR="32"
+            ;;
+        10)
+            accountVAR="co_msedcc" # (24 nodes,   40 cores/node,  384 GB memory/node)
+            paritionVAR="savio3_htc"
+            QoSVAR="savio_lowprio"
+            nodesVAR="1"
+            cpusVAR="24"
+            ;;
+        11)
+            accountVAR="catamount" # (8 nodes,   16 cores/node,  64 GB memory/node)
+            paritionVAR="catamount"
+            QoSVAR="cm_long"
+            nodesVAR="1"
+            cpusVAR="16"
+            ;;
+        *)
+            echo "Invalid partition number: $1"
+            exit 1
+            ;;
+    esac
+
+    if [ "partition" != "11" ];
+    then
+        sed -i '/# TIME BLOCK/{s/^.*$/# Wall clock limit\n#SBATCH --time=3-00:00:00/}' job.sh
+    fi
+}
+
+
+if [ "$supercell" = "1x1" ];
+then
+
+    strain="0"
+    copy_material_files "$material" "$functional" "$SOC"
+
+    simulation="Relaxation"
+    ./referenceFiles/settings.txt "$material" "$type" "$structure" "$supercell" "$simulation" "$functional" "$strain" "$SOC"
+    mv input.fdf 1-Relaxation.tmp
+    cat 1-Relaxation.tmp referenceFiles/Relaxation-io.fdf > 1-Relaxation.fdf
+
+    simulation="Static"
+    ./referenceFiles/settings.txt "$material" "$type" "$structure" "$supercell" "$simulation" "$functional" "$strain" "$SOC"
+    mv input.fdf 2-Static.tmp
+    cat 2-Static.tmp referenceFiles/Static-io.fdf > 2-Static.fdf
+
+    simulation="Bands"
+    ./referenceFiles/settings.txt "$material" "$type" "$structure" "$supercell" "$simulation" "$functional" "$strain" "$SOC"
+    mv input.fdf 3-Bands.tmp
+    cat 3-Bands.tmp referenceFiles/Bands-io.fdf > 3-Bands.fdf
+
+    simulation="LDOS"
+    ./referenceFiles/settings.txt "$material" "$type" "$structure" "$supercell" "$simulation" "$functional" "$strain" "$SOC"
+    mv input.fdf LDOS.tmp
+    cat LDOS.tmp referenceFiles/Static-io.fdf > LDOS.fdf
+
+    rm *.tmp
+
+    cp referenceFiles/template.sh job.sh
+
+    set_partition_variables "$partition"
+
+    # Replace variables in the script file
+    sed -i "s/typeVAR/$type/g;
+            s/materialVAR/$material/g;
+            s/functionalVAR/$functional/g;
+            s/structureVAR/$structure/g;
+            s/supercellVAR/$supercell/g;
+            s/strainVAR/$strain/g;
+            s/socVAR/$SOC/g;" job.sh
+
+    sed -i "s/accountVAR/$accountVAR/g;
+            s/paritionVAR/$paritionVAR/g;
+            s/QoSVAR/$QoSVAR/g;
+            s/nodesVAR/$nodesVAR/g;
+            s/cpusVAR/$cpusVAR/g;" job.sh
+
+    sed -i "s/RelaxVAR/$RelaxRun/g;
+            s/StaticVAR/$StaticRun/g;
+            s/BandsVAR/$BandsRun/g;
+            s/LDOSVAR/$LDOSRun/g;" job.sh
+
+    targetDir=materials/$material/$type/$structure/$supercell/$strain
+
+    mv *.fdf *.sh *.psf ${targetDir}/
+
+    if [ "$RELAXED" = "T" ]; then
+       cp ${targetDir}/relaxedStructure/*.STRUCT_OUT ${targetDir}/$material.STRUCT_IN
+    else
+       cp ${targetDir}/Structure/*.STRUCT_IN ${targetDir}/$material.STRUCT_IN
+    fi
+
+    cd ${targetDir}
+    sbatch -o job.out -e job.err job.sh
+
+    cd ~/SIESTA
+fi
+
+if [ "$supercell" != "1x1" ];
+then
+    for ((i=0; i<${#strains[@]}; i++)); do
+
+            strain="${strains[i]}"
+            copy_material_files "$material" "$functional" "$SOC"
+
+            simulation="Relaxation"
+            ./referenceFiles/settings.txt "$material" "$type" "$structure" "$supercell" "$simulation" "$functional" "$strain" "$SOC"
+            mv input.fdf 1-Relaxation.tmp
+            cat 1-Relaxation.tmp referenceFiles/Relaxation-io.fdf > 1-Relaxation.fdf
+
+            simulation="Static"
+            ./referenceFiles/settings.txt "$material" "$type" "$structure" "$supercell" "$simulation" "$functional" "$strain" "$SOC"
+            mv input.fdf 2-Static.tmp
+            cat 2-Static.tmp referenceFiles/Static-io.fdf > 2-Static.fdf
+
+            simulation="Bands"
+            ./referenceFiles/settings.txt "$material" "$type" "$structure" "$supercell" "$simulation" "$functional" "$strain" "$SOC"
+            mv input.fdf 3-Bands.tmp
+            cat 3-Bands.tmp referenceFiles/Bands-io.fdf > 3-Bands.fdf
+
+            simulation="LDOS"
+            ./referenceFiles/settings.txt "$material" "$type" "$structure" "$supercell" "$simulation" "$functional" "$strain" "$SOC"
+            mv input.fdf LDOS.tmp
+            cat LDOS.tmp referenceFiles/Static-io.fdf > LDOS.fdf
+
+            rm *.tmp
+
+            cp referenceFiles/template.sh job.sh
+
+            set_partition_variables "$partition"
+
+
+            # Replace variables in the script file
+            sed -i "s/typeVAR/$type/g;
+                    s/materialVAR/$material/g;
+                    s/functionalVAR/$functional/g;
+                    s/structureVAR/$structure/g;
+                    s/supercellVAR/$supercell/g;
+                    s/strainVAR/$strain/g;
+                    s/socVAR/$SOC/g;" job.sh
+
+            sed -i "s/accountVAR/$accountVAR/g;
+                    s/paritionVAR/$paritionVAR/g;
+                    s/QoSVAR/$QoSVAR/g;
+                    s/nodesVAR/$nodesVAR/g;
+                    s/cpusVAR/$cpusVAR/g;" job.sh
+
+            sed -i "s/RelaxVAR/$RelaxRun/g;
+                    s/StaticVAR/$StaticRun/g;
+                    s/BandsVAR/$BandsRun/g;
+                    s/LDOSVAR/$LDOSRun/g;" job.sh
+
+            targetDir=materials/$material/$type/$structure/$supercell/$strain
+
+            mv *.fdf *.sh *.psf ${targetDir}/
+
+            if [ "$RELAXED" = "T" ]; then
+                 cp ${targetDir}/relaxedStructure/*.STRUCT_OUT ${targetDir}/$material.STRUCT_IN
+             else
+                 cp ${targetDir}/Structure/*.STRUCT_IN ${targetDir}/$material.STRUCT_IN
+            fi
+
+            cd ${targetDir}
+            sbatch -o job.out -e job.err job.sh
+
+        cd ~/SIESTA
+
+    done
+fi

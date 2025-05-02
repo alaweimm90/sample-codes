@@ -1,0 +1,411 @@
+% Constants
+hbar = 1.054571817e-34;       % Reduced Planck constant [J.s]
+hbar_eV = 6.582119569e-16;    % Reduced Planck constant [eV.s]
+e = 1.6021810e-19;            % Electron charge [C]
+a0 = 0.529177e-10;            % Bohr radius [m]
+BohrToAng = 1 / (a0 * 1e10);  % 1.889727
+AngToBohr = 1 / BohrToAng;    % 0.529177
+m0 = 9.1093837e-31;           % Electron mass [kg]
+
+% Define lattice parameters
+lattice = readmatrix('lattice.out', 'FileType', 'text');
+a = lattice(1, 1);
+b = lattice(1, 2);
+c = lattice(1, 3);
+alpha = lattice(2, 1);
+beta = lattice(2, 2);
+gamma = lattice(2, 3);
+a1 = a * [1; 0; 0];
+a2 = b * [cosd(gamma); sind(gamma); 0];
+a3 = c * [cosd(beta); ...
+           (cosd(alpha) - cosd(beta) * cosd(gamma)) / sind(gamma); ...
+           sqrt(1 - cosd(beta)^2 - ((cosd(alpha) - cosd(beta) * cosd(gamma)) / sind(gamma))^2)];
+Vr = lattice(3, 1);
+Ar = norm(cross([a1(1:2)', 0], [a2(1:2)', 0]));
+gammar = gamma;
+
+% RECIPROCAL SPACE
+B = 2 * pi * inv([a1 a2 a3]);
+b1 = B(1, :)';
+b2 = B(2, :)';
+b3 = B(3, :)';
+Vk = dot(b1, cross(b2, b3));
+Ak = norm(cross([b1(1:2)', 0], [b2(1:2)', 0]));
+gammak = atan2(norm(cross([b1(1:2)', 0], [b2(1:2)', 0])), dot([b1(1:2)', 0], [b2(1:2)', 0]));
+s = (2 * pi / a) * (2 / 3);
+R = s;  % Apothem (radius of circumscribed circle)
+r = (sqrt(3) / 2) * s;  % Radius (radius of inscribed circle)
+Lx = norm(b1) / 2;      % Lx of rectangle
+Ly = norm(b2) / 2;      % Ly of rectangle
+
+% Define symmetry points
+G_xy = s * [0, 0];
+X_xy = s * [3/4, 0];
+S_xy = s * [3/4, sqrt(3)/4];
+Y_xy = s * [0, sqrt(3)/4];
+K_xy = s * [0.5, 0];
+Q_xy = s * [0.5 * 0.48, sqrt(3)/4];
+
+% Import CB and VB files
+Mtemp0 = readmatrix('fullBZ//kx-ky-kz-E-CB1-2D.txt');
+Mtemp1 = [Mtemp0(:, 1), Mtemp0(:, 2), Mtemp0(:, 4)];
+Mtemp2 = [-Mtemp0(:, 1), -Mtemp0(:, 2), Mtemp0(:, 4)];
+M_CB1 = [Mtemp1; Mtemp2];
+
+Mtemp0 = readmatrix('fullBZ//kx-ky-kz-E-VB1-2D.txt');
+Mtemp1 = [Mtemp0(:, 1), Mtemp0(:, 2), Mtemp0(:, 4)];
+Mtemp2 = [-Mtemp0(:, 1), -Mtemp0(:, 2), Mtemp0(:, 4)];
+M_VB1 = [Mtemp1; Mtemp2];
+
+% Import bandstructure
+CB1 = readmatrix('CB1.txt');
+VB1 = readmatrix('VB1.txt');
+
+CBM1 = readmatrix('CBM1.out', 'FileType', 'text');
+VBM1 = readmatrix('VBM1.out', 'FileType', 'text');
+
+% Find indices and symmetry points for bandstructure
+ID_k_CBM1 = find(CB1(:, 2) == min(CB1(:, 2)));
+ID_k_CBM1 = sort(ID_k_CBM1);
+k_CBM1 = CB1(ID_k_CBM1);
+
+ID_k_VBM1 = find(VB1(:, 2) == max(VB1(:, 2)));
+ID_k_VBM1 = sort(ID_k_VBM1);
+k_VBM1 = VB1(ID_k_VBM1);
+
+% Indices and symmetry points for bandstructure
+Nk_increment = 100;
+
+% Indices
+indexG1 = 0 * Nk_increment + 1;
+indexK = 68;
+indexX = 1 * Nk_increment + 1;
+indexS = 1 * Nk_increment + 1 + 10;
+indexQ = 175;
+%                   indexQ = 171;
+
+                    indexY = 2 * Nk_increment + 1 + 10;
+indexG2 = 2 * Nk_increment + 1 + 20;
+
+% k-points
+G1Point = CB1(indexG1, 1);
+XPoint = CB1(indexX, 1);
+SPoint = CB1(indexS, 1);
+KPoint = CB1(indexK, 1);
+%QPoint = ((0.633505000000000) / s) * s + SPoint;
+QPoint = CB1(indexQ, 1);
+YPoint = CB1(indexY, 1);
+G2Point = CB1(indexG2, 1);
+
+% Find local minima and maxima
+[TFmin,Pmin] = islocalmin(CB1(:,2));
+[TFmax,Pmax] = islocalmax(CB1(:,2));
+minimaCB1 = [CB1(TFmin,1) CB1(TFmin,2)];
+maximaCB1 = [CB1(TFmax,1) CB1(TFmax,2)];
+
+[TFmin,Pmin] = islocalmin(VB1(:,2));
+[TFmax,Pmax] = islocalmax(VB1(:,2));
+minimaVB1 = [VB1(TFmin,1) VB1(TFmin,2)];
+maximaVB1 = [VB1(TFmax,1) VB1(TFmax,2)];
+
+k = CB1(:,1);
+L1=Lx;
+L2=Ly;
+L3=Lx;
+L4=Ly;
+Ltotal=L1+L2+L3+L4;
+
+kr = [k(ID_k_CBM1(1)) k(ID_k_VBM1(1))]';
+krID = [ID_k_CBM1(1) ID_k_VBM1(1)]';
+
+kxkyExtrema = [];
+for i=1:length(kr)
+    if 0<=kr(i) && kr(i)<=L1
+        kx=kr(i);
+        ky=0;
+    elseif L1<=kr(i) && kr(i)<=L1+L2
+        kx=L1;
+        ky=kr(i)-L1;
+    elseif L1+L2<=kr(i) && kr(i)<=L1+L2+L3
+        kx=L1-(kr(i)-(L1+L2));
+        ky=L2;
+    else
+        kx=0;
+        ky=L2-(kr(i)-(L1+L2+L3));
+    end
+    temp=[kx ky];
+    kxkyExtrema=[kxkyExtrema; temp];
+end
+
+ktotal=[k, k];
+Etotal=[CB1(:,2), VB1(:,2)];
+
+kExtrema=[kr(1) kr(2)];
+EExtrema=[Etotal(krID(1), 1) Etotal(krID(2), 2)];
+
+kxky_CBM1 = kxkyExtrema(1,:);
+kxky_VBM1 = kxkyExtrema(2,:);
+
+
+kExtrema = [kr(1), kr(2)];
+EExtrema = [Etotal(ID_k_CBM1(1), 1), Etotal(ID_k_VBM1(1), 2)];
+Nk = 20
+Nkx = Nk
+Nky= 5*Nk
+rkx0 = norm(b1(1:2)) / 2;
+rky0 = norm(b2(1:2)) / 2;
+rkx = 0.2*rkx0
+rky = 0.2*rky0
+A = [b1(1:2) b2(1:2)];
+
+angles = [0, 90, 180, 270];  % Only the desired angles
+
+% Initialize arrays for CBM, VBM, etc.
+xCBM = [];
+xVBM = [];
+xG = [];
+xX = [];
+xS = [];
+xY = [];
+xK = [];
+xQ = [];
+
+% CBM
+kx0CBM = kxky_CBM1(1);
+ky0CBM = kxky_CBM1(2);
+bCBM = [kx0CBM; ky0CBM];
+x0CBM = A\bCBM;
+
+% VBM
+kx0VBM = kxky_VBM1(1);
+ky0VBM = kxky_VBM1(2);
+bVBM = [kx0VBM; ky0VBM];
+x0VBM = A\bVBM;
+
+% G
+kx0G = G_xy(1);
+ky0G = G_xy(2);
+bG = [kx0G; ky0G];
+x0G = A\bG;
+
+% X
+kx0X = X_xy(1);
+ky0X = X_xy(2);
+bX = [kx0X; ky0X];
+x0X = A\bX;
+
+% S
+kx0S = S_xy(1);
+ky0S = S_xy(2);
+bS = [kx0S; ky0S];
+x0S = A\bS;
+
+% Y
+kx0Y = Y_xy(1);
+ky0Y = Y_xy(2);
+bY = [kx0Y; ky0Y];
+x0Y = A\bY;
+
+% K
+kx0K = K_xy(1);
+ky0K = K_xy(2);
+bK = [kx0K; ky0K];
+x0K = A\bK;
+
+% Q
+kx0Q = Q_xy(1);
+ky0Q = Q_xy(2);
+bQ = [kx0Q; ky0Q];
+x0Q = A\bQ;
+
+for i = 1:length(angles)
+    phiDeg = angles(i);  % Use only the specified angles
+    phi = phiDeg * (pi / 180);
+
+    % CBM
+    kxCBM = rkx * cos(phi) + kx0CBM;
+    kyCBM = rky * sin(phi) + ky0CBM;
+    btempCBM = [kxCBM; kyCBM];
+    xtempCBM = A\btempCBM;
+    xCBM = [xCBM x0CBM xtempCBM];
+
+    % VBM
+    kxVBM = rkx * cos(phi) + kx0VBM;
+    kyVBM = rky * sin(phi) + ky0VBM;
+    btempVBM = [kxVBM; kyVBM];
+    xtempVBM = A\btempVBM;
+    xVBM = [xVBM x0VBM xtempVBM];
+
+    % G
+    kxG = rkx * cos(phi) + kx0G;
+    kyG = rky * sin(phi) + ky0G;
+    btempG = [kxG; kyG];
+    xtempG = A\btempG;
+    xG = [xG x0G xtempG];
+
+    % X
+    kxX = rkx * cos(phi) + kx0X;
+    kyX = rky * sin(phi) + ky0X;
+    btempX = [kxX; kyX];
+    xtempX = A\btempX;
+    xX = [xX x0X xtempX];
+
+    % S
+    kxS = rkx * cos(phi) + kx0S;
+    kyS = rky * sin(phi) + ky0S;
+    btempS = [kxS; kyS];
+    xtempS = A\btempS;
+    xS = [xS x0S xtempS];
+
+    % Y
+    kxY = rkx * cos(phi) + kx0Y;
+    kyY = rky * sin(phi) + ky0Y;
+    btempY = [kxY; kyY];
+    xtempY = A\btempY;
+    xY = [xY x0Y xtempY];
+
+    % K
+    kxK = rkx * cos(phi) + kx0K;
+    kyK = rky * sin(phi) + ky0K;
+    btempK = [kxK; kyK];
+    xtempK = A\btempK;
+    xK = [xK x0K xtempK];
+
+    % Q
+    kxQ = rkx * cos(phi) + kx0Q;
+    kyQ = rky * sin(phi) + ky0Q;
+    btempQ = [kxQ; kyQ];
+    xtempQ = A\btempQ;
+    xQ = [xQ x0Q xtempQ];
+end
+
+xVBM=[xVBM' double(zeros(length(xVBM),1))];
+C1=ones(1,length(xVBM)/2);
+C2=Nk*ones(1,length(xVBM)/2);
+C = [C1(:) C2(:)]';
+xVBM = [C(:) xVBM];
+
+xCBM=[xCBM' double(zeros(length(xCBM),1))];
+C1=ones(1,length(xCBM)/2);
+C2=Nk*ones(1,length(xCBM)/2);
+C = [C1(:) C2(:)]';
+xCBM = [C(:) xCBM];
+
+xG=[xG' double(zeros(length(xG),1))];
+C1=ones(1,length(xG)/2);
+C2=Nk*ones(1,length(xG)/2);
+C = [C1(:) C2(:)]';
+xG = [C(:) xG];
+
+xX=[xX' double(zeros(length(xX),1))];
+C1=ones(1,length(xX)/2);
+C2=Nk*ones(1,length(xX)/2);
+C = [C1(:) C2(:)]';
+xX = [C(:) xX];
+
+xS=[xS' double(zeros(length(xS),1))];
+C1=ones(1,length(xS)/2);
+C2=Nk*ones(1,length(xS)/2);
+C = [C1(:) C2(:)]';
+xS = [C(:) xS];
+
+xY=[xY' double(zeros(length(xY),1))];
+C1=ones(1,length(xY)/2);
+C2=Nk*ones(1,length(xY)/2);
+C = [C1(:) C2(:)]';
+xY = [C(:) xY];
+
+xK=[xK' double(zeros(length(xK),1))];
+C1=ones(1,length(xK)/2);
+C2=Nk*ones(1,length(xK)/2);
+C = [C1(:) C2(:)]';
+xK = [C(:) xK];
+
+xQ=[xQ' double(zeros(length(xQ),1))];
+C1=ones(1,length(xQ)/2);
+C2=Nk*ones(1,length(xQ)/2);
+C = [C1(:) C2(:)]';
+xQ = [C(:) xQ];
+
+% Define Nkx and Nky
+Nkx = 30;  % Example value for Nkx
+Nky = 10*Nkx;  % Example value for Nky
+
+% List of matrices and their corresponding file names
+matrices = {xCBM, xVBM, xG, xX, xS, xY, xK, xQ};
+filenames = {'pathCBM.txt', 'pathVBM.txt', 'pathG.txt', 'pathX.txt', 'pathS.txt', 'pathY.txt', 'pathK.txt', 'pathQ.txt'};
+
+% Loop through each matrix and update the rows
+for i = 1:length(matrices)
+    mat = matrices{i};  % Get the current matrix
+
+    % Update the first entry of the second and sixth rows with Nkx
+    mat(2, 1) = Nkx;
+    mat(6, 1) = Nkx;
+
+    % Update the first entry of the fourth and eighth rows with Nky
+    mat(4, 1) = Nky;
+    mat(8, 1) = Nky;
+
+    % Save the updated matrix to the corresponding file
+    writematrix(mat, filenames{i}, 'Delimiter', 'space');
+end
+
+
+%writematrix(xCBM,'pathCBM.txt','Delimiter','space')
+%writematrix(xVBM,'pathVBM.txt','Delimiter','space')
+%writematrix(xG,'pathG.txt','Delimiter','space')
+%writematrix(xX,'pathX.txt','Delimiter','space')
+%writematrix(xS,'pathS.txt','Delimiter','space')
+%writematrix(xY,'pathY.txt','Delimiter','space')
+%writematrix(xK,'pathK.txt','Delimiter','space')
+%writematrix(xQ,'pathQ.txt','Delimiter','space')
+
+% BANDSTRUCTURE
+writematrix(CB1, 'bands//CB1.txt', 'Delimiter', ' ');
+writematrix(VB1, 'bands//VB1.txt', 'Delimiter', ' ');
+writematrix(CBM1, 'bands//E_CBM1.txt');
+writematrix(VBM1, 'bands//E_VBM1.txt');
+writematrix(min(ID_k_CBM1), 'bands//indexk_CBM1.txt');
+writematrix(min(ID_k_VBM1), 'bands//indexk_VBM1.txt');
+writematrix(min(k_CBM1), 'bands//k_CBM1.txt');
+writematrix(min(k_VBM1), 'bands//k_VBM1.txt');
+writematrix(G_xy, 'bands//G_xy.txt');
+writematrix(X_xy, 'bands//X_xy.txt');
+writematrix(S_xy, 'bands//S_xy.txt');
+writematrix(Y_xy, 'bands//Y_xy.txt');
+writematrix(K_xy, 'bands//K_xy.txt');
+writematrix(Q_xy, 'bands//Q_xy.txt');
+writematrix(indexG1, 'bands//indexk_G1.txt');
+writematrix(indexX, 'bands//indexk_X.txt');
+writematrix(indexS, 'bands//indexk_S.txt');
+writematrix(indexQ, 'bands//indexk_Q.txt');
+writematrix(indexY, 'bands//indexk_Y.txt');
+writematrix(indexG2, 'bands//indexk_G2.txt');
+writematrix(G1Point, 'bands//k_G1.txt');
+writematrix(KPoint, 'bands//k_K.txt');
+writematrix(XPoint, 'bands//k_X.txt');
+writematrix(SPoint, 'bands//k_S.txt');
+writematrix(QPoint, 'bands//k_Q.txt');
+writematrix(YPoint, 'bands//k_Y.txt');
+writematrix(G2Point, 'bands//k_G2.txt');
+
+% Energy grids
+writematrix(M_CB1, 'fullBZ//M_CB1.txt', 'Delimiter', ' ');
+writematrix(M_VB1, 'fullBZ//M_VB1.txt', 'Delimiter', ' ');
+writematrix(M_CB1, 'fullBZ//M_CB1Ext.txt', 'Delimiter', ' ');
+writematrix(M_VB1, 'fullBZ//M_VB1Ext.txt', 'Delimiter', ' ');
+writematrix(kx, 'fullBZ//kx.txt', 'Delimiter', ' ');
+writematrix(ky, 'fullBZ//ky.txt', 'Delimiter', ' ');
+writematrix(minimaCB1, 'fullBZ//minimaCB1.txt', 'Delimiter', ' ');
+writematrix(minimaVB1, 'fullBZ//minimaVB1.txt', 'Delimiter', ' ');
+writematrix(maximaCB1, 'fullBZ//maximaCB1.txt', 'Delimiter', ' ');
+writematrix(maximaVB1, 'fullBZ//maximaVB1.txt', 'Delimiter', ' ');
+writematrix(lattice(1,:), 'latticeConstants.txt', 'Delimiter', ' ');
+writematrix(lattice(2,:), 'latticeAngles.txt', 'Delimiter', ' ');
+
+% Final data exports
+writematrix(kxkyExtrema, 'bands//kxkyExtrema.txt');
+writematrix(Etotal, 'bands//Etotal.txt');
+writematrix(kExtrema, 'bands//kExtrema.txt');
+[meshal@ln002 SIESTA]$

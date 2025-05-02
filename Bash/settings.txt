@@ -1,0 +1,365 @@
+#!/bin/bash
+
+# Material
+material=$1              # MoS2, C, et.
+type=$2                  # Bulk, Monolayer, Nanotube
+structure=$3             # Rectangular, Primitive
+supercell=$4             # 1x1, 2x5, etc.
+simulation=$5            # Relaxation, Static, Bands, LDOS
+functional=$6            # GGA (PBE), LDA (PZ)
+strain=$7                # in %
+SOC=$8                   # enable SOC
+
+# Path to the material-specific header file
+if [ "$strain" -eq 0 ]; then
+    cat materials/"$material"/"$type"/"$structure"/"$supercell"/header-0.txt referenceFiles/template.fdf > input.fdf
+else
+    cat materials/"$material"/"$type"/"$structure"/"$supercell"/header.txt referenceFiles/template.fdf > input.fdf
+fi
+
+NumberOfAtomsVAR=$(awk 'NR==4 {print}' materials/"$material"/"$type"/"$structure"/"$supercell"/"$strain"/Structure/*.STRUCT_IN)
+
+
+# Mesh Settings
+EcutoffVAR="400"
+
+# Occupation Settings
+foccupVAR="FD"
+TelecVAR="50"
+
+# Functional Settings
+if [ "$functional" = "GGA" ]; then
+    functionalVAR="GGA"
+    authorsVAR="PBE"
+elif [ "$functional" = "LDA" ]; then
+    functionalVAR="LDA"
+    authorsVAR="PZ"
+fi
+
+# Basis Settings
+basisSizeVAR="DZP"
+
+# SCF (Self-Consistent Field) Settings
+SCFMustConvergeVAR="true"
+minSCFVAR="0"
+maxSCFVAR="1000"
+methodVAR="Pulay"      # Options: Linear, Pulay, Broyden
+variantVAR="original"  # Options: original, GR
+weightVAR="0.1"
+
+# Density Matrix (DM) Settings
+DMConvVAR="true"
+DMtolVAR="1e-5"
+
+# Hamiltonian Convergence Settings
+HConvVAR="true"
+HtolVAR="1e-4"
+
+# Energy Density Matrix (EDM) Settings
+EDMConvVAR="true"
+EDMtolVAR="1e-4"
+
+# Conjugate Gradient (CG) Optimization Settings
+MDstepsVAR="10000"
+variableCellVAR="true"
+FtolVAR="0.01"
+MaxDisplVAR="0.05"
+PressureVAR="0"
+MaxStressTolVAR="0.1"
+
+
+# Spin Settings
+if [ "$SOC" = "T" ]; then
+    spinVAR="spin-orbit"
+    TelecVAR="5"
+    HtolVAR="1e-5"
+
+elif [ "$SOC" = "F" ]; then
+    spinVAR="non-polarized"
+else
+    echo "Error: Invalid SOC value ('$SOC')."
+    exit 1
+fi
+
+# Replace <spinVAR> and validate
+awk -v spinVAR="$spinVAR" '
+{
+    # Replace <spinVAR> with the correct value
+    gsub(/<spinVAR>/, spinVAR);
+
+    # Ensure no "spin-orbit" exists when SOC=F
+    if (spinVAR == "non-polarized" && /spin-orbit/) {
+        gsub(/spin-orbit/, "non-polarized");
+    }
+
+    # Error if spin-orbit remains despite SOC=F
+    if (spinVAR == "non-polarized" && /Spin.*spin-orbit/) {
+        print "ERROR: spin-orbit incorrectly assigned with SOC=F" > "/dev/stderr";
+        exit 1;
+    }
+
+    print
+}' input.fdf > tmpfile && mv tmpfile input.fdf
+
+
+# Final check for spin-orbit errors
+if grep -q "spin-orbit" input.fdf && [ "$SOC" = "F" ]; then
+    echo "ERROR: spin-orbit found in input.fdf despite SOC=F"
+    exit 1
+fi
+
+
+# Supercell Adjustment
+if [ "$supercell" = "1x1" ]; then
+    variableCellVAR="true"
+fi
+
+
+if [ "$type" = "Monolayer" ] && [ "$structure" = "primitive" ] && [ "$supercell" = "1x1" ]; then
+    NkL1=100; NkL2=100; NkL3=100;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "1x1" ]; then
+    NkL1=100; NkL2=50; NkL3=100; NkL4=50;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "1x10" ]; then
+    NkL1=100; NkL2=10; NkL3=100; NkL4=10;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "1x20" ]; then
+    NkL1=100; NkL2=5; NkL3=100; NkL4=5;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "1x30" ]; then
+    NkL1=100; NkL2=3; NkL3=100; NkL4=3;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "1x100" ]; then
+    NkL1=100; NkL2=2; NkL3=100; NkL4=2;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "10x1" ]; then
+    NkL1=50; NkL2=10; NkL3=50; NkL4=10;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "20x1" ]; then
+    NkL1=25; NkL2=10; NkL3=25; NkL4=10;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "30x1" ]; then
+    NkL1=17; NkL2=10; NkL3=17; NkL4=10;
+elif [ "$type" = "Monolayer" ] && [ "$structure" = "rectangular" ] && [ "$supercell" = "100x1" ]; then
+    NkL1=4; NkL2=10; NkL3=4; NkL4=10;
+fi
+
+if [ "$type" = "Bulk" ] && [ "$structure" = "primitive" ] && [ "$supercell" = "1x1" ]; then
+    NkL1=100; NkL2=100; NkL3=100; NkL4=100; NkL5=100; NkL6=100; NkL7=100;
+fi
+
+
+if [ $simulation != "Relaxation" ];
+then
+    variableCellVAR="false"
+    SCFMustConvergeVAR="false"
+    minSCFVAR="0"
+    maxSCFVAR="10000"
+    MDstepsVAR="0"
+fi
+
+# Read the content from the external files
+
+if [ "$SOC" = "T" ]; then
+    kGridRelaxation=$(<"materials/$material/$type/$structure/$supercell/$strain/kpoints-Relaxation-SOC.txt")
+else
+    kGridRelaxation=$(<"materials/$material/$type/$structure/$supercell/$strain/kpoints-Relaxation.txt")
+fi
+
+kGridStatic=$(<materials/"$material"/"$type"/"$structure"/"$supercell"/"$strain"/kpoints-Static.txt)
+kGridPDOS=$(<materials/"$material"/"$type"/"$structure"/"$supercell"/"$strain"/kpoints-PDOS.txt)
+Bands=$(<materials/"$material"/"$type"/"$structure"/Bands.txt)
+PDOS=$(<materials/"$material"/"$type"/"$structure"/PDOS.txt)
+LDOS=$(<materials/"$material"/"$type"/"$structure"/LDOS.txt)
+
+# RELAXATION
+if [ $simulation = "Relaxation" ];
+then
+sed -i -e "/# K-GRID BLOCK/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$kGridRelaxation
+EOF
+E1VAR="-6.0"
+E2VAR="2.0"
+WFSBandMinVAR=$((3*NumberOfAtomsVAR - 2))
+WFSBandMaxVAR=$((3*NumberOfAtomsVAR + 3))
+WFSEMinVAR="-6.0"
+WFSEMaxVAR="2.0"
+sed -i -e "/# LDOS BLOCK/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$LDOS
+EOF
+fi
+
+# STATIC
+if [ $simulation = "Static" ];
+then
+sed -i -e "/# K-GRID BLOCK/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$kGridStatic
+EOF
+E1PDOSVAR=-6.0
+E2PDOSVAR=2.0
+sigmaVAR=0.01
+NpointsVAR=4000
+WFSBandMinVAR=$((3*NumberOfAtomsVAR - 2))
+WFSBandMaxVAR=$((3*NumberOfAtomsVAR + 3))
+WFSEMinVAR="-6"
+WFSEMaxVAR="2.0"
+sed -i -e "/# PDOS BLOCK 1/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$PDOS
+EOF
+sed -i -e "/# PDOS BLOCK 2/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$kGridPDOS
+EOF
+fi
+
+# BANDS
+if [ $simulation = "Bands" ];
+then
+sed -i -e "/# K-GRID BLOCK/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$kGridRelaxation
+EOF
+WFSBandMinVAR=$((3*NumberOfAtomsVAR - 2 - 40))
+WFSBandMaxVAR=$((3*NumberOfAtomsVAR + 3 + 40))
+WFSEMinVAR="-6.0"
+WFSEMaxVAR="2.0"
+NkL1VAR=$NkL1
+NkL2VAR=$NkL2
+NkL3VAR=$NkL3
+NkL4VAR=$NkL4
+NkL5VAR=$NkL5
+NkL6VAR=$NkL6
+NkL7VAR=$NkL7
+sed -i -e "/# BANDS BLOCK/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$Bands
+EOF
+fi
+
+# LDOS
+if [ $simulation = "LDOS" ];
+then
+sed -i -e "/# K-GRID BLOCK/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$kGridStatic
+EOF
+E1VAR="XXXX"
+E2VAR="YYYY"
+WFSBandMinVAR=$((3*NumberOfAtomsVAR - 2))
+WFSBandMaxVAR=$((3*NumberOfAtomsVAR + 3))
+WFSEMinVAR="-6.0"
+WFSEMaxVAR="2.0"
+sed -i -e "/# LDOS BLOCK/{
+   r /dev/stdin
+   d
+}" input.fdf <<EOF
+$LDOS
+EOF
+fi
+
+awk -v NkL1VAR="$NkL1VAR" \
+    -v NkL2VAR="$NkL2VAR" \
+    -v NkL3VAR="$NkL3VAR" \
+    -v NkL4VAR="$NkL4VAR" \
+    -v NkL5VAR="$NkL5VAR" \
+    -v NkL6VAR="$NkL6VAR" \
+    -v NkL7VAR="$NkL7VAR" \
+    -v SCFMustConvergeVAR="$SCFMustConvergeVAR" \
+    -v WFSBandMinVAR="$WFSBandMinVAR" \
+    -v WFSBandMaxVAR="$WFSBandMaxVAR" \
+    -v WFSEMinVAR="$WFSEMinVAR" \
+    -v WFSEMaxVAR="$WFSEMaxVAR" \
+    -v NumberOfAtomsVAR="$NumberOfAtomsVAR" \
+    -v EcutoffVAR="$EcutoffVAR" \
+    -v foccupVAR="$foccupVAR" \
+    -v TelecVAR="$TelecVAR" \
+    -v basisSizeVAR="$basisSizeVAR" \
+    -v functionalVAR="$functionalVAR" \
+    -v authorsVAR="$authorsVAR" \
+    -v spinVAR="$spinVAR" \
+    -v methodVAR="$methodVAR" \
+    -v variantVAR="$variantVAR" \
+    -v weightVAR="$weightVAR" \
+    -v DMConvVAR="$DMConvVAR" \
+    -v DMtolVAR="$DMtolVAR" \
+    -v HConvVAR="$HConvVAR" \
+    -v HtolVAR="$HtolVAR" \
+    -v EDMConvVAR="$EDMConvVAR" \
+    -v EDMtolVAR="$EDMtolVAR" \
+    -v variableCellVAR="$variableCellVAR" \
+    -v FtolVAR="$FtolVAR" \
+    -v MaxDisplVAR="$MaxDisplVAR" \
+    -v PressureVAR="$PressureVAR" \
+    -v MaxStressTolVAR="$MaxStressTolVAR" \
+    -v E1PDOSVAR="$E1PDOSVAR" \
+    -v E2PDOSVAR="$E2PDOSVAR" \
+    -v sigmaVAR="$sigmaVAR" \
+    -v NpointsVAR="$NpointsVAR" \
+    -v E1VAR="$E1VAR" \
+    -v E2VAR="$E2VAR" \
+    -v minSCFVAR="$minSCFVAR" \
+    -v maxSCFVAR="$maxSCFVAR" \
+    -v MDstepsVAR="$MDstepsVAR" \
+    -v cell="$cell" \
+    -v supercell="$supercell" \
+    '{
+        gsub(/\<NkL1VAR\>/, NkL1VAR);
+        gsub(/\<NkL2VAR\>/, NkL2VAR);
+        gsub(/\<NkL3VAR\>/, NkL3VAR);
+        gsub(/\<NkL4VAR\>/, NkL4VAR);
+        gsub(/\<NkL5VAR\>/, NkL5VAR);
+        gsub(/\<NkL6VAR\>/, NkL6VAR);
+        gsub(/\<NkL7VAR\>/, NkL7VAR);
+        gsub(/\<SCFMustConvergeVAR\>/, SCFMustConvergeVAR);
+        gsub(/\<WFSBandMinVAR\>/, WFSBandMinVAR);
+        gsub(/\<WFSBandMaxVAR\>/, WFSBandMaxVAR);
+        gsub(/\<WFSEMinVAR\>/, WFSEMinVAR);
+        gsub(/\<WFSEMaxVAR\>/, WFSEMaxVAR);
+        gsub(/\<NumberOfAtomsVAR\>/, NumberOfAtomsVAR);
+        gsub(/\<EcutoffVAR\>/, EcutoffVAR);
+        gsub(/\<foccupVAR\>/, foccupVAR);
+        gsub(/\<TelecVAR\>/, TelecVAR);
+        gsub(/\<basisSizeVAR\>/, basisSizeVAR);
+        gsub(/\<functionalVAR\>/, functionalVAR);
+        gsub(/\<authorsVAR\>/, authorsVAR);
+        gsub(/\<spinVAR\>/, spinVAR);
+        gsub(/\<methodVAR\>/, methodVAR);
+        gsub(/\<variantVAR\>/, variantVAR);
+        gsub(/\<weightVAR\>/, weightVAR);
+        gsub(/\<DMConvVAR\>/, DMConvVAR);
+        gsub(/\<DMtolVAR\>/, DMtolVAR);
+        gsub(/\<HConvVAR\>/, HConvVAR);
+        gsub(/\<HtolVAR\>/, HtolVAR);
+        gsub(/\<EDMConvVAR\>/, EDMConvVAR);
+        gsub(/\<EDMtolVAR\>/, EDMtolVAR);
+        gsub(/\<variableCellVAR\>/, variableCellVAR);
+        gsub(/\<FtolVAR\>/, FtolVAR);
+        gsub(/\<MaxDisplVAR\>/, MaxDisplVAR);
+        gsub(/\<PressureVAR\>/, PressureVAR);
+        gsub(/\<MaxStressTolVAR\>/, MaxStressTolVAR);
+        gsub(/\<E1PDOSVAR\>/, E1PDOSVAR);
+        gsub(/\<E2PDOSVAR\>/, E2PDOSVAR);
+        gsub(/\<sigmaVAR\>/, sigmaVAR);
+        gsub(/\<NpointsVAR\>/, NpointsVAR);
+        gsub(/\<E1VAR\>/, E1VAR);
+        gsub(/\<E2VAR\>/, E2VAR);
+        gsub(/\<minSCFVAR\>/, minSCFVAR);
+        gsub(/\<maxSCFVAR\>/, maxSCFVAR);
+        gsub(/\<MDstepsVAR\>/, MDstepsVAR);
+        gsub(/\<cell\>/, cell);
+        gsub(/\<supercell\>/, supercell);
+        print
+    }' input.fdf > tmpfile && mv tmpfile input.fdf
