@@ -1,0 +1,68 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{amsmath, amsfonts, amssymb, bm}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, shadows.blur}
+% Color and style definitions
+\definecolor{startcolor}{RGB}{255, 248, 240}
+\definecolor{processcolor}{RGB}{240, 245, 255}
+\definecolor{decisioncolor}{RGB}{245, 245, 245}
+\definecolor{finalcolor}{RGB}{255, 240, 245}
+\definecolor{arrowcolor}{RGB}{50, 50, 50}
+\definecolor{yescolor}{RGB}{0, 100, 0}
+\definecolor{nocolor}{RGB}{180, 0, 0}
+\tikzset{
+    font=\sffamily\bfseries,
+    startstop/.style = {
+        rectangle, rounded corners, minimum width=5cm, minimum height=1.2cm, 
+        text centered, draw=arrowcolor, line width=1pt, fill=startcolor, blur shadow
+    },
+    block/.style = {
+        rectangle, minimum width=5cm, minimum height=1.2cm, text centered, 
+        text width=6.5cm, align=center, draw=arrowcolor, line width=1pt, fill=processcolor, blur shadow
+    },
+    decision/.style = {
+        diamond, aspect=2.2, minimum width=5cm, minimum height=2.2cm,
+        text centered, text width=4.75cm, align=center, draw=arrowcolor, 
+        line width=1pt, fill=decisioncolor, inner sep=6pt, blur shadow
+    },
+    finalblock/.style = {
+        rectangle, minimum width=5cm, minimum height=1.8cm, text centered, 
+        text width=7cm, align=center, draw=arrowcolor, line width=1pt, fill=finalcolor, blur shadow
+    },
+    arrow/.style = {-{Stealth[length=4mm,width=2.5mm]}, ultra thick, draw=arrowcolor},
+    yesarrow/.style = {arrow, draw=yescolor},
+    noarrow/.style = {arrow, draw=nocolor}
+}
+\begin{document}
+\begin{tikzpicture}[node distance=1.8cm]
+% Nodes
+\node[startstop] (start) {\textbf{Initial atomic positions}\\[0.5em] $\{\boldsymbol{r}_i^{(0)}\}$};
+\node[block, below=of start] (forces) {\textbf{Calculate interatomic forces}\\[0.5em]
+$\boldsymbol{F}_i = -\nabla_i U(\{\boldsymbol{r}_j\})$};
+\node[block, below=of forces] (direction) {\textbf{Determine search direction}\\[0.5em]
+CG: $\boldsymbol{d}_i^{(n)} = \boldsymbol{F}_i^{(n)} + \beta^{(n)}\boldsymbol{d}_i^{(n-1)}$\\
+FIRE: $\boldsymbol{d}_i^{(n)} = \boldsymbol{F}_i^{(n)} + \gamma \boldsymbol{v}_i^{(n)}$};
+\node[block, below=of direction] (update) {\textbf{Update atomic positions}\\[0.5em]
+$\boldsymbol{r}_i^{(n+1)} = \boldsymbol{r}_i^{(n)} + \alpha^{(n)} \boldsymbol{d}_i^{(n)}$\\
+(Line search for optimal $\alpha^{(n)}$)};
+\node[decision, below=of update] (check) {
+\textbf{Check convergence:}\\[0.5em]
+$\max_i |\boldsymbol{F}_i| < F_{\mathrm{tol}}$\\
+$|E^{(n)} - E^{(n-1)}| < E_{\mathrm{tol}}$
+};
+\node[finalblock, below=2.1cm of check] (output) {
+\textbf{Output relaxed structure and properties}\\[0.5em]
+$\{\boldsymbol{r}_i^{\mathrm{opt}}\}$, $U_{\mathrm{min}}$, $\kappa_{\mathrm{max}}$,\\
+$A$, $\lambda$, band structure metrics
+};
+% Arrows
+\draw[arrow] (start) -- (forces);
+\draw[arrow] (forces) -- (direction);
+\draw[arrow] (direction) -- (update);
+\draw[arrow] (update) -- (check);
+\draw[yesarrow] (check) -- node[right, text=yescolor, font=\small\bfseries] {Yes} (output);
+% Loop for "No"
+\path (check.west) -- ++(-2.0,0) coordinate (left);
+\draw[noarrow] (check.west) -- (left) node[midway, above, text=nocolor, font=\small\bfseries] {No} |- (forces.west);
+\end{tikzpicture}
+\end{document}
