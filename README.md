@@ -2,7 +2,7 @@
 
 **Author:** Meshal Alawein  
 **Email:** meshal@berkeley.edu  
-**LinkedIn:** [linkedin.com/in/meshal-alawein](https://linkedin.com/in/meshal-alawein)  
+**LinkedIn:** [linkedin.com/in/meshal-alawein]([https://linkedin.com/in/meshal-alawein](https://www.linkedin.com/in/meshal-alawein-36b83389/))  
 **Website:** [malawein.info](https://malawein.info)
 
 ## 🔬 About This Repository
